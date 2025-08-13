@@ -54,11 +54,14 @@ function priyanshtours_format_price($price) {
         return wp_kses_post(wp_travel_get_formated_price_currency($price));
     }
     
-    // Fallback using WordPress currency format
-    if (function_exists('get_woocommerce_currency_symbol')) {
-        $currency_symbol = get_woocommerce_currency_symbol();
-    } else {
-        $currency_symbol = '$'; // Default to dollar if no currency function available
+    // Fallback using WP-Travel's options or a sensible default.
+    $currency_code = 'USD';
+    $currency_symbol = '$';
+
+    $currency_option = get_option('wp_travel_currency_option');
+    if (isset($currency_option['currency']) && $currency_option['currency_symbol']) {
+        $currency_code = $currency_option['currency'];
+        $currency_symbol = $currency_option['currency_symbol'];
     }
     
     return $currency_symbol . number_format($price, 2);

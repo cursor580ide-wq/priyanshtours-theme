@@ -22,8 +22,17 @@ class PriyanshTours_Viator_Integration {
         add_action('wp_ajax_viator_sync_tours', array($this, 'ajax_sync_tours'));
         add_action('wp_ajax_nopriv_viator_sync_tours', array($this, 'ajax_sync_tours'));
         
-        // Get API key from WordPress options
-        $this->api_key = get_option('priyanshtours_viator_api_key', '');
+        // Get API key from wp-config.php (recommended) or WordPress options (fallback)
+        // To use the recommended method, add the following line to your wp-config.php file:
+        // define('VIATOR_API_KEY', 'your_viator_api_key_here');
+        if (defined('VIATOR_API_KEY')) {
+            $this->api_key = VIATOR_API_KEY;
+        } else {
+            $this->api_key = get_option('priyanshtours_viator_api_key', '');
+        }
+
+        // Get Supplier ID from WordPress options
+        $this->supplier_id = get_option('priyanshtours_viator_supplier_id', '5597044');
     }
     
     /**
@@ -252,39 +261,60 @@ class PriyanshTours_Viator_Integration {
      */
     public function sync_viator_tours() {
         if (!get_option('priyanshtours_viator_enabled', 0)) {
+            error_log('Viator sync skipped: integration is disabled.');
+            return false;
+        }
+
+        if (empty($this->api_key)) {
+            error_log('Viator sync error: API key is not configured.');
             return false;
         }
         
         $viator_tours = $this->fetch_viator_tours();
         
         if (is_wp_error($viator_tours)) {
-            error_log('Viator sync error: ' . $viator_tours->get_error_message());
+            error_log('Viator API fetch error: ' . $viator_tours->get_error_message());
             return false;
+        }
+
+        if (empty($viator_tours)) {
+            error_log('Viator sync: No tours returned from the API.');
+            // We don't return false here, as an empty response is not necessarily an error.
         }
         
         $synced_count = 0;
+        $all_synced_product_codes = array();
         
         foreach ($viator_tours as $viator_tour) {
             $mapped_tour = $this->map_viator_tour($viator_tour);
+            $all_synced_product_codes[] = $mapped_tour['product_code'];
             
             // Check if tour already exists
-            $existing_post = get_posts(array(
+            $existing_post_query = new WP_Query(array(
                 'post_type' => 'itineraries',
                 'meta_key' => 'viator_product_code',
                 'meta_value' => $mapped_tour['product_code'],
                 'post_status' => 'any',
-                'numberposts' => 1
+                'posts_per_page' => 1
             ));
             
+            $existing_post = $existing_post_query->posts;
+
             if (!empty($existing_post)) {
                 // Update existing tour
                 $post_id = $existing_post[0]->ID;
-                wp_update_post(array(
+                $result = wp_update_post(array(
                     'ID' => $post_id,
                     'post_title' => $mapped_tour['title'],
                     'post_content' => $mapped_tour['description'],
                     'post_status' => 'publish'
-                ));
+                ), true);
+
+                if (is_wp_error($result)) {
+                    error_log('Viator sync error: Failed to update post ' . $post_id . ' for product ' . $mapped_tour['product_code'] . '. Error: ' . $result->get_error_message());
+                    continue; // Skip to the next tour
+                }
+
             } else {
                 // Create new tour
                 $post_id = wp_insert_post(array(
@@ -292,49 +322,91 @@ class PriyanshTours_Viator_Integration {
                     'post_title' => $mapped_tour['title'],
                     'post_content' => $mapped_tour['description'],
                     'post_status' => 'publish',
-                    'meta_input' => array(
-                        'viator_product_code' => $mapped_tour['product_code'],
-                        'tour_source' => 'viator'
-                    )
-                ));
+                ), true);
+
+                if (is_wp_error($post_id)) {
+                    error_log('Viator sync error: Failed to insert new post for product ' . $mapped_tour['product_code'] . '. Error: ' . $post_id->get_error_message());
+                    continue; // Skip to the next tour
+                }
             }
             
-            if ($post_id) {
-                // Update tour metadata
-                update_post_meta($post_id, 'viator_product_code', $mapped_tour['product_code']);
-                update_post_meta($post_id, 'tour_source', 'viator');
-                update_post_meta($post_id, 'wp_travel_trip_price', $mapped_tour['price']);
-                update_post_meta($post_id, 'wp_travel_trip_duration', $mapped_tour['duration']['days']);
-                update_post_meta($post_id, 'wp_travel_trip_duration_night', $mapped_tour['duration']['nights']);
-                update_post_meta($post_id, 'wp_travel_trip_duration_days', $mapped_tour['duration']['days']);
-                update_post_meta($post_id, 'viator_original_data', $mapped_tour['original_data']);
-                update_post_meta($post_id, 'viator_rating', $mapped_tour['rating']);
-                update_post_meta($post_id, 'viator_review_count', $mapped_tour['review_count']);
-                
-                // Set featured image from Viator
-                if (!empty($mapped_tour['image'])) {
-                    $this->set_featured_image_from_url($post_id, $mapped_tour['image']);
-                }
-                
-                // Set location taxonomy
-                if (!empty($mapped_tour['location'])) {
-                    $location_term = get_term_by('name', $mapped_tour['location'], 'travel_locations');
-                    if (!$location_term) {
-                        $location_term = wp_insert_term($mapped_tour['location'], 'travel_locations');
-                        if (!is_wp_error($location_term)) {
-                            $location_term = get_term($location_term['term_id']);
-                        }
-                    }
-                    if ($location_term && !is_wp_error($location_term)) {
-                        wp_set_post_terms($post_id, array($location_term->term_id), 'travel_locations');
-                    }
-                }
-                
-                $synced_count++;
+            // Update tour metadata
+            update_post_meta($post_id, 'viator_product_code', $mapped_tour['product_code']);
+            update_post_meta($post_id, 'tour_source', 'viator');
+            update_post_meta($post_id, 'wp_travel_trip_price', $mapped_tour['price']);
+            update_post_meta($post_id, 'wp_travel_trip_duration', $mapped_tour['duration']['days']);
+            update_post_meta($post_id, 'wp_travel_trip_duration_night', $mapped_tour['duration']['nights']);
+            update_post_meta($post_id, 'wp_travel_trip_duration_days', $mapped_tour['duration']['days']);
+            update_post_meta($post_id, 'viator_original_data', $mapped_tour['original_data']);
+            update_post_meta($post_id, 'viator_rating', $mapped_tour['rating']);
+            update_post_meta($post_id, 'viator_review_count', $mapped_tour['review_count']);
+
+            // Set featured image from Viator
+            if (!empty($mapped_tour['image']) && !has_post_thumbnail($post_id)) {
+                $this->set_featured_image_from_url($post_id, $mapped_tour['image']);
             }
+
+            // Set location taxonomy
+            if (!empty($mapped_tour['location'])) {
+                $location_term = get_term_by('name', $mapped_tour['location'], 'travel_locations');
+                if (!$location_term) {
+                    $location_term_data = wp_insert_term($mapped_tour['location'], 'travel_locations');
+                    if (!is_wp_error($location_term_data)) {
+                        $location_term = get_term($location_term_data['term_id']);
+                    } else {
+                        error_log('Viator sync error: Failed to insert taxonomy term ' . $mapped_tour['location'] . '. Error: ' . $location_term_data->get_error_message());
+                    }
+                }
+                if ($location_term && !is_wp_error($location_term)) {
+                    wp_set_post_terms($post_id, array($location_term->term_id), 'travel_locations');
+                }
+            }
+
+            $synced_count++;
         }
+
+        // De-sync old tours
+        $this->desync_old_viator_tours($all_synced_product_codes);
         
         return $synced_count;
+    }
+
+    /**
+     * De-sync old Viator tours that are no longer in the API feed.
+     * @param array $current_product_codes An array of product codes from the current API feed.
+     */
+    public function desync_old_viator_tours($current_product_codes) {
+        $args = array(
+            'post_type' => 'itineraries',
+            'posts_per_page' => -1,
+            'meta_query' => array(
+                array(
+                    'key' => 'tour_source',
+                    'value' => 'viator',
+                    'compare' => '=',
+                ),
+            ),
+        );
+
+        $viator_posts = get_posts($args);
+        $desynced_count = 0;
+
+        foreach ($viator_posts as $post) {
+            $product_code = get_post_meta($post->ID, 'viator_product_code', true);
+            if (!in_array($product_code, $current_product_codes)) {
+                // This tour is no longer in the feed, so set it to draft.
+                $update_post = array(
+                    'ID' => $post->ID,
+                    'post_status' => 'draft',
+                );
+                wp_update_post($update_post);
+                $desynced_count++;
+            }
+        }
+
+        if ($desynced_count > 0) {
+            error_log('Viator de-sync: ' . $desynced_count . ' old tours set to draft.');
+        }
     }
     
     /**

@@ -11,9 +11,11 @@ Tags: travel, mobile-first, modern
 Text Domain: priyanshtours-theme
 */
 
-@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto:wght@400&display=swap');
 
 :root {
+    --font-primary: 'Poppins', sans-serif;
+    --font-secondary: 'Roboto', sans-serif;
     --color-primary-orange: #F57A45; /* A slightly softer orange from prototype */
     --color-primary-green: #2A7D4B;  /* A green from the logo */
     --color-text-dark: #222222;
@@ -24,11 +26,15 @@ Text Domain: priyanshtours-theme
 }
 
 body {
-    font-family: 'Public Sans', sans-serif;
+    font-family: var(--font-secondary);
     background-color: var(--color-background-light);
     color: var(--color-text-dark);
     margin: 0;
     padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6, .btn, .nav-item, .section-title, .entry-title, .usp-title, .tour-card-title, .testimonial-author-info h4, .cta-title {
+    font-family: var(--font-primary);
 }
 
 a {
