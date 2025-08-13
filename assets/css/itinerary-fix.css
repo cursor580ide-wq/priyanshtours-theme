@@ -1,0 +1,55 @@
+/**
+ * Direct CSS fixes for WP Travel itinerary items
+ */
+
+/* Make itinerary items clickable */
+.wp-travel-itinerary-items > li {
+    cursor: pointer !important;
+    position: relative;
+    z-index: 1;
+}
+
+/* Fix for accordion content visibility */
+.wp-travel-itinerary-items .accordion-content {
+    display: none;
+    padding: 20px !important;
+    border-top: 1px solid #eee;
+}
+
+/* When active, show the content */
+.wp-travel-itinerary-items > li.active .accordion-content {
+    display: block !important;
+}
+
+/* Style the chevron/arrow for toggling */
+.wp-travel-itinerary-items > li .accordion-title-wrapper .dashicons {
+    transition: transform 0.3s ease;
+}
+
+.wp-travel-itinerary-items > li.active .accordion-title-wrapper .dashicons {
+    transform: rotate(180deg);
+}
+
+/* Style the header for better visibility */
+.wp-travel-itinerary-items > li .accordion-title-wrapper {
+    padding: 15px 20px;
+    background-color: #f9f9f9;
+    transition: background-color 0.2s ease;
+}
+
+.wp-travel-itinerary-items > li:hover .accordion-title-wrapper,
+.wp-travel-itinerary-items > li.active .accordion-title-wrapper {
+    background-color: #f1f1f1;
+}
+
+/* Ensure the open/close all buttons work */
+.open-all, .close-all {
+    cursor: pointer;
+    color: #F57A45;
+    font-weight: 500;
+}
+
+/* Add a highlight for active days */
+.wp-travel-itinerary-items > li.active {
+    box-shadow: 0 0 0 2px rgba(245, 122, 69, 0.3);
+} 

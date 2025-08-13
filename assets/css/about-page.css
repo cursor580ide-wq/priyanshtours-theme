@@ -1,0 +1,357 @@
+/*
+ * Custom Styles for the About Us Page Template
+ */
+
+/* Main container styling */
+.about-us-page-wrapper {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Section styling */
+.about-us-page-wrapper section {
+    padding: 60px 0;
+    overflow: hidden;
+}
+
+/* Container width constraints */
+.about-us-page-wrapper .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Hero section styling */
+.about-us-page-wrapper .hero-section {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    padding: 120px 0;
+    color: white;
+    text-align: center;
+}
+
+.about-us-page-wrapper .hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7));
+}
+
+.about-us-page-wrapper .hero-section h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.about-us-page-wrapper .hero-section p {
+    font-size: 1.2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+}
+
+/* Our Story section styling */
+.about-us-page-wrapper .our-story-section {
+    background-color: white;
+}
+
+.about-us-page-wrapper .our-story-section img {
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+    height: auto;
+}
+
+.about-us-page-wrapper .our-story-section h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* Why Choose Us section styling */
+.about-us-page-wrapper .why-choose-section {
+    background-color: #f9f9f9;
+}
+
+.about-us-page-wrapper .why-choose-section h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 40px;
+    color: #333;
+}
+
+/* About card styling */
+.about-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+}
+
+.about-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.about-card .icon-container {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.about-card h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.about-card p {
+    color: #666;
+    line-height: 1.6;
+}
+
+/* Meet the founder section styling */
+.about-us-page-wrapper .founder-section {
+    background-color: white;
+}
+
+.about-us-page-wrapper .founder-section img.founder-image {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid #F57A45;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.about-us-page-wrapper .founder-section h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 15px 0 5px;
+    color: #333;
+}
+
+.about-us-page-wrapper .founder-title {
+    color: #F57A45;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.about-us-page-wrapper .founder-quote {
+    font-size: 1.2rem;
+    line-height: 1.7;
+    color: #555;
+    font-style: italic;
+    position: relative;
+    padding: 0 20px;
+}
+
+.about-us-page-wrapper .founder-quote::before {
+    content: '"';
+    font-size: 4rem;
+    position: absolute;
+    left: -10px;
+    top: -20px;
+    opacity: 0.1;
+    font-family: Georgia, serif;
+}
+
+/* Photo gallery styling */
+.about-us-page-wrapper .gallery-section {
+    background-color: #f9f9f9;
+}
+
+.about-us-page-wrapper .gallery-section h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 40px;
+    color: #333;
+}
+
+.about-us-page-wrapper .gallery-grid img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+}
+
+.about-us-page-wrapper .gallery-grid img:hover {
+    transform: scale(1.05);
+}
+
+/* Color overrides for brand consistency */
+.about-us-page-wrapper .text-orange {
+    color: #F57A45 !important;
+}
+
+.about-us-page-wrapper .bg-orange {
+    background-color: #F57A45 !important;
+}
+
+.about-us-page-wrapper .border-orange {
+    border-color: #F57A45 !important;
+}
+
+/* Animation Styles - Enhanced */
+.animate-on-scroll {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Animation delays for cascading effects */
+.animate-delay-100 {
+    transition-delay: 0.1s;
+}
+
+.animate-delay-200 {
+    transition-delay: 0.2s;
+}
+
+.animate-delay-300 {
+    transition-delay: 0.3s;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .about-us-page-wrapper .hero-section {
+        padding: 80px 0;
+    }
+    
+    .about-us-page-wrapper .hero-section h1 {
+        font-size: 2.2rem;
+    }
+    
+    .about-us-page-wrapper section {
+        padding: 40px 0;
+    }
+    
+    .about-card {
+        margin-bottom: 20px;
+    }
+    
+    .about-us-page-wrapper .founder-quote {
+        text-align: center;
+        padding: 20px 0;
+    }
+}
+
+/* Layout containers for flexbox sections */
+.about-us-page-wrapper .flex-container {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.about-us-page-wrapper .image-container {
+    flex: 1;
+}
+
+.about-us-page-wrapper .text-container {
+    flex: 1;
+}
+
+/* Cards grid layout */
+.about-us-page-wrapper .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 30px;
+}
+
+/* Founder section layout */
+.about-us-page-wrapper .founder-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.about-us-page-wrapper .founder-profile {
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.about-us-page-wrapper .founder-bio {
+    flex-grow: 1;
+}
+
+/* Gallery grid */
+.about-us-page-wrapper .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+/* Fix icon sizes */
+.about-us-page-wrapper .icon-container i {
+    font-size: 2.5rem;
+}
+
+/* Text styles */
+.about-us-page-wrapper h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.about-us-page-wrapper p {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: #555;
+    margin-bottom: 1rem;
+}
+
+/* Medium screens */
+@media (min-width: 768px) {
+    .about-us-page-wrapper .flex-container {
+        flex-direction: row;
+        align-items: center;
+    }
+    
+    .about-us-page-wrapper .cards-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .about-us-page-wrapper .gallery-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .about-us-page-wrapper .founder-container {
+        flex-direction: row;
+    }
+    
+    .about-us-page-wrapper .founder-profile {
+        width: 30%;
+    }
+    
+    .about-us-page-wrapper .founder-bio {
+        width: 70%;
+    }
+}

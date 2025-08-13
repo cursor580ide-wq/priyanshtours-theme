@@ -1,0 +1,116 @@
+/**
+ * Tour Responsive Styles
+ * Improves the display of tour cards and details on small screens
+ */
+
+/* Fix for tour price display on tour cards */
+.tour-card-price .wp-travel-trip-price-figure {
+    display: inline-block;
+}
+
+.tour-card-price .wp-travel-trip-price {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+/* Tour card improvements */
+@media (max-width: 576px) {
+    /* Better regular price display */
+    .tour-card-price span.regular-price {
+        display: block;
+        text-decoration: line-through;
+        opacity: 0.7;
+        font-size: 12px;
+        font-weight: normal;
+        margin-bottom: 2px;
+    }
+    
+    /* Make prices more readable */
+    .tour-card-price span.wp-travel-trip-price,
+    .tour-card-price span.price-amount {
+        font-size: 14px !important;
+        line-height: 1.2 !important;
+    }
+    
+    /* Better price container */
+    .tour-card-price {
+        padding: 5px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 80px;
+        text-align: center;
+    }
+    
+    /* Better "Explore" text sizing */
+    .tour-explore {
+        font-size: 12px;
+    }
+    
+    /* Smaller star icons */
+    .tour-card-rating i {
+        font-size: 13px;
+    }
+    
+    /* Reduced margins */
+    .tour-card-content {
+        padding: 10px 12px;
+    }
+    
+    /* Card footer spacing */
+    .tour-card-footer {
+        padding: 8px 12px;
+    }
+    
+    /* Reduce title size */
+    .tour-card-title {
+        font-size: 15px;
+        line-height: 1.3;
+        margin-bottom: 5px;
+    }
+    
+    /* Compact spacing for reviews count */
+    .tour-card-rating .rating-count {
+        font-size: 11px;
+    }
+}
+
+/* Single tour page responsive improvements */
+@media (max-width: 576px) {
+    /* Price container */
+    .tour-price-container {
+        margin-top: 10px;
+        text-align: center;
+    }
+    
+    /* Better price alignment */
+    .tour-header {
+        flex-direction: column;
+    }
+    
+    /* Adjusted button sizes */
+    .tour-booking-options {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    /* Tour info layout */
+    .tour-meta-info {
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 8px;
+    }
+    
+    /* Tour meta items */
+    .tour-meta-item {
+        margin: 3px 6px;
+        font-size: 13px;
+    }
+    
+    /* Tour title */
+    .tour-title {
+        font-size: 20px;
+        text-align: center;
+    }
+} 
