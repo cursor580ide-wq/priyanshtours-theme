@@ -124,7 +124,8 @@ function priyanshtours_scripts() {
     wp_localize_script('priyanshtours-tours', 'priyanshtours', array(
         'ajaxurl' => admin_url('admin-ajax.php'),
         'showFilters' => __('Filter Tours', 'priyanshtours'),
-        'hideFilters' => __('Hide Filters', 'priyanshtours')
+        'hideFilters' => __('Hide Filters', 'priyanshtours'),
+        'nonce' => wp_create_nonce('priyanshtours-filter-nonce')
     ));
 
 	if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
@@ -1518,5 +1519,192 @@ function priyanshtours_debug_template_loading($template) {
     return $template;
 }
 add_filter('template_include', 'priyanshtours_debug_template_loading', 99999);
+
+/**
+ * AJAX handler for filtering tours.
+ */
+function priyanshtours_filter_tours_ajax() {
+    check_ajax_referer('priyanshtours-filter-nonce', 'nonce');
+
+    $paged = isset($_POST['page']) ? absint($_POST['page']) : 1;
+
+    $args = array(
+        'post_type' => 'itineraries',
+        'posts_per_page' => 12,
+        'paged' => $paged,
+    );
+
+    $tax_query = array();
+    $meta_query = array();
+
+    // Source filter
+    if (!empty($_POST['source'])) {
+        $source = sanitize_text_field($_POST['source']);
+        if ($source === 'viator') {
+            $meta_query[] = array(
+                'key' => 'tour_source',
+                'value' => 'viator',
+                'compare' => '=',
+            );
+        } elseif ($source === 'wp_travel') {
+            $meta_query[] = array(
+                'relation' => 'OR',
+                array(
+                    'key' => 'tour_source',
+                    'compare' => 'NOT EXISTS',
+                ),
+                array(
+                    'key' => 'tour_source',
+                    'value' => 'viator',
+                    'compare' => '!=',
+                ),
+            );
+        }
+    }
+
+    // Destination filter
+    if (!empty($_POST['destination'])) {
+        $tax_query[] = array(
+            'taxonomy' => 'travel_locations',
+            'field' => 'slug',
+            'terms' => sanitize_text_field($_POST['destination']),
+        );
+    }
+
+    // Trip Type filter
+    if (!empty($_POST['trip-type'])) {
+        $tax_query[] = array(
+            'taxonomy' => 'itinerary_types',
+            'field' => 'slug',
+            'terms' => sanitize_text_field($_POST['trip-type']),
+        );
+    }
+
+    // Duration filter
+    if (!empty($_POST['duration'])) {
+        $duration = sanitize_text_field($_POST['duration']);
+        switch ($duration) {
+            case '1-3':
+                $meta_query[] = array('key' => 'wp_travel_trip_duration_days', 'value' => array(1, 3), 'type' => 'NUMERIC', 'compare' => 'BETWEEN');
+                break;
+            case '4-7':
+                $meta_query[] = array('key' => 'wp_travel_trip_duration_days', 'value' => array(4, 7), 'type' => 'NUMERIC', 'compare' => 'BETWEEN');
+                break;
+            case '8-14':
+                $meta_query[] = array('key' => 'wp_travel_trip_duration_days', 'value' => array(8, 14), 'type' => 'NUMERIC', 'compare' => 'BETWEEN');
+                break;
+            case '15+':
+                $meta_query[] = array('key' => 'wp_travel_trip_duration_days', 'value' => 15, 'type' => 'NUMERIC', 'compare' => '>=');
+                break;
+        }
+    }
+
+    // Price range filter
+    if (!empty($_POST['min_price']) || !empty($_POST['max_price'])) {
+        $price_meta = array('key' => 'wp_travel_trip_price', 'type' => 'NUMERIC');
+        if (!empty($_POST['min_price']) && !empty($_POST['max_price'])) {
+            $price_meta['value'] = array(intval($_POST['min_price']), intval($_POST['max_price']));
+            $price_meta['compare'] = 'BETWEEN';
+        } elseif (!empty($_POST['min_price'])) {
+            $price_meta['value'] = intval($_POST['min_price']);
+            $price_meta['compare'] = '>=';
+        } elseif (!empty($_POST['max_price'])) {
+            $price_meta['value'] = intval($_POST['max_price']);
+            $price_meta['compare'] = '<=';
+        }
+        $meta_query[] = $price_meta;
+    }
+
+    if (!empty($tax_query)) {
+        $tax_query['relation'] = 'AND';
+        $args['tax_query'] = $tax_query;
+    }
+
+    if (!empty($meta_query)) {
+        $meta_query['relation'] = 'AND';
+        $args['meta_query'] = $meta_query;
+    }
+
+    // Sort tours
+    if (!empty($_POST['sort'])) {
+        $sort = sanitize_text_field($_POST['sort']);
+        switch ($sort) {
+            case 'price_low':
+                $args['meta_key'] = 'wp_travel_trip_price';
+                $args['orderby'] = 'meta_value_num';
+                $args['order'] = 'ASC';
+                break;
+            case 'price_high':
+                $args['meta_key'] = 'wp_travel_trip_price';
+                $args['orderby'] = 'meta_value_num';
+                $args['order'] = 'DESC';
+                break;
+            case 'duration_short':
+                $args['meta_key'] = 'wp_travel_trip_duration_days';
+                $args['orderby'] = 'meta_value_num';
+                $args['order'] = 'ASC';
+                break;
+            case 'duration_long':
+                $args['meta_key'] = 'wp_travel_trip_duration_days';
+                $args['orderby'] = 'meta_value_num';
+                $args['order'] = 'DESC';
+                break;
+            case 'alphabetical':
+                $args['orderby'] = 'title';
+                $args['order'] = 'ASC';
+                break;
+            case 'newest':
+                $args['orderby'] = 'date';
+                $args['order'] = 'DESC';
+                break;
+            default:
+                $args['orderby'] = 'menu_order';
+                $args['order'] = 'ASC';
+                break;
+        }
+    }
+
+    $query = new WP_Query($args);
+
+    ob_start();
+
+    if ($query->have_posts()) {
+        echo '<div class="tours-grid">';
+        while ($query->have_posts()) {
+            $query->the_post();
+            include locate_template('wp-travel-templates/content-archive-itineraries-custom.php');
+        }
+        echo '</div>';
+
+        echo '<div class="tours-pagination">';
+        $pagination_links = paginate_links(array(
+            'total' => $query->max_num_pages,
+            'current' => $paged,
+            'prev_text' => '<i class="bx bx-chevron-left"></i> ' . __('Previous', 'priyanshtours'),
+            'next_text' => __('Next', 'priyanshtours') . ' <i class="bx bx-chevron-right"></i>',
+            'type' => 'array',
+        ));
+        if ($pagination_links) {
+            echo '<nav class="pagination-nav">';
+            echo '<ul class="pagination-list">';
+            foreach ($pagination_links as $link) {
+                echo '<li class="pagination-item">' . str_replace('page-numbers', 'page-numbers page-link', $link) . '</li>';
+            }
+            echo '</ul>';
+            echo '</nav>';
+        }
+        echo '</div>';
+    } else {
+        echo '<div class="no-tours-found"><div class="no-tours-content"><i class="bx bx-map"></i><h3>' . __('No tours found', 'priyanshtours') . '</h3><p>' . __('Try adjusting your search criteria or browse all available tours.', 'priyanshtours') . '</p><a href="' . esc_url(get_post_type_archive_link('itineraries')) . '" class="shadcn-button shadcn-button-default">' . __('View All Tours', 'priyanshtours') . '</a></div></div>';
+    }
+
+    $html = ob_get_clean();
+
+    wp_reset_postdata();
+
+    wp_send_json_success(array('html' => $html));
+}
+add_action('wp_ajax_filter_tours', 'priyanshtours_filter_tours_ajax');
+add_action('wp_ajax_nopriv_filter_tours', 'priyanshtours_filter_tours_ajax');
 
 ?> 

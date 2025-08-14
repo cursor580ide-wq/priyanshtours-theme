@@ -189,54 +189,59 @@ $current_source = isset($_GET['source']) ? sanitize_text_field($_GET['source']) 
 
         <!-- Tours Grid Container -->
         <div class="tours-content">
-            <?php if (have_posts()) : ?>
-                
-                <div class="tours-grid">
-                    <?php
-                    while (have_posts()) {
-                        the_post();
-                        // Include the custom tour card template
-                        include locate_template('wp-travel-templates/content-archive-itineraries-custom.php');
-                    }
-                    ?>
-                </div>
-
-                <!-- Pagination -->
-                <div class="tours-pagination">
-                    <?php
-                    $pagination_links = paginate_links([
-                        'prev_text' => '<i class="bx bx-chevron-left"></i> ' . __('Previous', 'priyanshtours'),
-                        'next_text' => __('Next', 'priyanshtours') . ' <i class="bx bx-chevron-right"></i>',
-                        'type' => 'array'
-                    ]);
+            <div class="tours-loader" style="display: none;">
+                <div class="loader-spinner"></div>
+            </div>
+            <div id="tours-results-container">
+                <?php if (have_posts()) : ?>
                     
-                    if ($pagination_links) {
-                        echo '<nav class="pagination-nav">';
-                        echo '<ul class="pagination-list">';
-                        foreach ($pagination_links as $link) {
-                            echo '<li class="pagination-item">' . $link . '</li>';
+                    <div class="tours-grid">
+                        <?php
+                        while (have_posts()) {
+                            the_post();
+                            // Include the custom tour card template
+                            include locate_template('wp-travel-templates/content-archive-itineraries-custom.php');
                         }
-                        echo '</ul>';
-                        echo '</nav>';
-                    }
-                    ?>
-                </div>
-
-            <?php else : ?>
-                
-                <div class="no-tours-found">
-                    <div class="no-tours-content">
-                        <i class="bx bx-map"></i>
-                        <h3><?php _e('No tours found', 'priyanshtours'); ?></h3>
-                        <p><?php _e('Try adjusting your search criteria or browse all available tours.', 'priyanshtours'); ?></p>
-                        <a href="<?php echo esc_url(get_post_type_archive_link('itineraries')); ?>" 
-                           class="shadcn-button shadcn-button-default">
-                            <?php _e('View All Tours', 'priyanshtours'); ?>
-                        </a>
+                        ?>
                     </div>
-                </div>
-                
-            <?php endif; ?>
+
+                    <!-- Pagination -->
+                    <div class="tours-pagination">
+                        <?php
+                        $pagination_links = paginate_links([
+                            'prev_text' => '<i class="bx bx-chevron-left"></i> ' . __('Previous', 'priyanshtours'),
+                            'next_text' => __('Next', 'priyanshtours') . ' <i class="bx bx-chevron-right"></i>',
+                            'type' => 'array'
+                        ]);
+
+                        if ($pagination_links) {
+                            echo '<nav class="pagination-nav">';
+                            echo '<ul class="pagination-list">';
+                            foreach ($pagination_links as $link) {
+                                echo '<li class="pagination-item">' . $link . '</li>';
+                            }
+                            echo '</ul>';
+                            echo '</nav>';
+                        }
+                        ?>
+                    </div>
+
+                <?php else : ?>
+
+                    <div class="no-tours-found">
+                        <div class="no-tours-content">
+                            <i class="bx bx-map"></i>
+                            <h3><?php _e('No tours found', 'priyanshtours'); ?></h3>
+                            <p><?php _e('Try adjusting your search criteria or browse all available tours.', 'priyanshtours'); ?></p>
+                            <a href="<?php echo esc_url(get_post_type_archive_link('itineraries')); ?>"
+                               class="shadcn-button shadcn-button-default">
+                                <?php _e('View All Tours', 'priyanshtours'); ?>
+                            </a>
+                        </div>
+                    </div>
+
+                <?php endif; ?>
+            </div>
         </div>
 
         <?php do_action('wp_travel_after_main_content'); ?>
