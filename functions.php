@@ -117,15 +117,6 @@ function priyanshtours_scripts() {
     // Home page scripts
     wp_enqueue_script('priyanshtours-home', get_template_directory_uri() . '/assets/js/home.js', array('jquery', 'swiper-js'), _S_VERSION, true);
     
-    // Tours page scripts
-    wp_enqueue_script('priyanshtours-tours', get_template_directory_uri() . '/assets/js/tours.js', array('jquery'), _S_VERSION, true);
-    
-    // Localize scripts
-    wp_localize_script('priyanshtours-tours', 'priyanshtours', array(
-        'ajaxurl' => admin_url('admin-ajax.php'),
-        'showFilters' => __('Filter Tours', 'priyanshtours'),
-        'hideFilters' => __('Hide Filters', 'priyanshtours')
-    ));
 
 	if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
 		wp_enqueue_script( 'comment-reply' );
@@ -493,192 +484,6 @@ function priyanshtours_custom_search_form( $form ) {
 add_filter( 'get_search_form', 'priyanshtours_custom_search_form', 100 );
 
 
-/**
- * Filter tours based on GET parameters for search functionality
- * Enhanced to handle homepage search and direct URL access
- */
-function priyanshtours_filter_tours_query($query) {
-    // Only modify main query on frontend for itinerary archives and taxonomy pages
-    if (!is_admin() && $query->is_main_query()) {
-        
-        $request_uri = $_SERVER['REQUEST_URI'];
-        
-        // Check if we're on a tour-related page (including direct URL access)
-        $is_tour_page = is_post_type_archive('itineraries') || 
-                       is_tax('travel_locations') || 
-                       is_tax('itinerary_types') ||
-                       preg_match('/\/itinerary\/?(?:\?.*)?$/', $request_uri) ||
-                       preg_match('/\/itineraries\/?(?:\?.*)?$/', $request_uri) ||
-                       strpos($request_uri, 'wordpress/itinerary') !== false;
-        
-        if ($is_tour_page) {
-            // Force this to be recognized as an itineraries archive
-            $query->set('post_type', 'itineraries');
-            $query->set('posts_per_page', 12); // Set a reasonable number of posts per page
-            
-            $tax_query = $query->get('tax_query') ?: array();
-            $meta_query = $query->get('meta_query') ?: array();
-
-            // Source filter (WP Travel vs Viator)
-            if (!empty($_GET['source'])) {
-                $source = sanitize_text_field($_GET['source']);
-                if ($source === 'viator') {
-                    $meta_query[] = array(
-                        'key' => 'tour_source',
-                        'value' => 'viator',
-                        'compare' => '='
-                    );
-                } elseif ($source === 'wp_travel') {
-                    $meta_query[] = array(
-                        'relation' => 'OR',
-                        array(
-                            'key' => 'tour_source',
-                            'compare' => 'NOT EXISTS'
-                        ),
-                        array(
-                            'key' => 'tour_source',
-                            'value' => 'viator',
-                            'compare' => '!='
-                        )
-                    );
-                }
-            }
-
-            // Destination filter
-            if (!empty($_GET['destination'])) {
-                $tax_query[] = array(
-                    'taxonomy' => 'travel_locations',
-                    'field'    => 'slug',
-                    'terms'    => sanitize_text_field($_GET['destination']),
-                );
-            }
-
-            // Trip Type filter
-            $trip_type_param = !empty($_GET['trip-type']) ? $_GET['trip-type'] : (!empty($_GET['itinerary_types']) ? $_GET['itinerary_types'] : '');
-            if (!is_tax('itinerary_types') && !empty($trip_type_param)) {
-                $tax_query[] = array(
-                    'taxonomy' => 'itinerary_types',
-                    'field'    => 'slug',
-                    'terms'    => sanitize_text_field($trip_type_param),
-                );
-            }
-
-            // Duration filter
-            if (!empty($_GET['duration'])) {
-                $duration = sanitize_text_field($_GET['duration']);
-                switch ($duration) {
-                    case '1-3':
-                        $meta_query[] = array(
-                            'key' => 'wp_travel_trip_duration_days',
-                            'value' => array(1, 3),
-                            'type' => 'NUMERIC',
-                            'compare' => 'BETWEEN'
-                        );
-                        break;
-                    case '4-7':
-                        $meta_query[] = array(
-                            'key' => 'wp_travel_trip_duration_days',
-                            'value' => array(4, 7),
-                            'type' => 'NUMERIC',
-                            'compare' => 'BETWEEN'
-                        );
-                        break;
-                    case '8-14':
-                        $meta_query[] = array(
-                            'key' => 'wp_travel_trip_duration_days',
-                            'value' => array(8, 14),
-                            'type' => 'NUMERIC',
-                            'compare' => 'BETWEEN'
-                        );
-                        break;
-                    case '15+':
-                        $meta_query[] = array(
-                            'key' => 'wp_travel_trip_duration_days',
-                            'value' => 15,
-                            'type' => 'NUMERIC',
-                            'compare' => '>='
-                        );
-                        break;
-                }
-            }
-
-            // Price range filter
-            if (!empty($_GET['min_price']) || !empty($_GET['max_price'])) {
-                $price_meta = array(
-                    'key' => 'wp_travel_trip_price',
-                    'type' => 'NUMERIC',
-                );
-
-                if (!empty($_GET['min_price']) && !empty($_GET['max_price'])) {
-                    $price_meta['value'] = array(intval($_GET['min_price']), intval($_GET['max_price']));
-                    $price_meta['compare'] = 'BETWEEN';
-                } elseif (!empty($_GET['min_price'])) {
-                    $price_meta['value'] = intval($_GET['min_price']);
-                    $price_meta['compare'] = '>=';
-                } elseif (!empty($_GET['max_price'])) {
-                    $price_meta['value'] = intval($_GET['max_price']);
-                    $price_meta['compare'] = '<=';
-                }
-
-                $meta_query[] = $price_meta;
-            }
-
-            // Sort tours
-            if (!empty($_GET['sort'])) {
-                $sort = sanitize_text_field($_GET['sort']);
-                switch ($sort) {
-                    case 'price_low':
-                        $query->set('meta_key', 'wp_travel_trip_price');
-                        $query->set('orderby', 'meta_value_num');
-                        $query->set('order', 'ASC');
-                        break;
-                    case 'price_high':
-                        $query->set('meta_key', 'wp_travel_trip_price');
-                        $query->set('orderby', 'meta_value_num');
-                        $query->set('order', 'DESC');
-                        break;
-                    case 'duration_short':
-                        $query->set('meta_key', 'wp_travel_trip_duration_days');
-                        $query->set('orderby', 'meta_value_num');
-                        $query->set('order', 'ASC');
-                        break;
-                    case 'duration_long':
-                        $query->set('meta_key', 'wp_travel_trip_duration_days');
-                        $query->set('orderby', 'meta_value_num');
-                        $query->set('order', 'DESC');
-                        break;
-                    case 'alphabetical':
-                        $query->set('orderby', 'title');
-                        $query->set('order', 'ASC');
-                        break;
-                    case 'newest':
-                        $query->set('orderby', 'date');
-                        $query->set('order', 'DESC');
-                        break;
-                    default:
-                        $query->set('orderby', 'menu_order');
-                        $query->set('order', 'ASC');
-                        break;
-                }
-            }
-
-            // Apply tax_query if we have any
-            if (!empty($tax_query)) {
-                $tax_query['relation'] = 'AND'; // All conditions must be met
-                $query->set('tax_query', $tax_query);
-            }
-
-            // Apply meta_query if we have any
-            if (!empty($meta_query)) {
-                $meta_query['relation'] = 'AND'; // All conditions must be met
-                $query->set('meta_query', $meta_query);
-            }
-        }
-    }
-    
-    return $query;
-}
-add_action('pre_get_posts', 'priyanshtours_filter_tours_query');
 
 /**
  * Function to flush rewrite rules on theme activation
@@ -698,89 +503,6 @@ function priyanshtours_flush_rewrite_rules_once() {
 }
 add_action('init', 'priyanshtours_flush_rewrite_rules_once', 99);
 
-/**
- * Override WP Travel templates with our custom templates
- * This ensures our templates are used regardless of plugin hooks
- */
-function priyanshtours_override_wp_travel_templates($template) {
-    // For tour archive page (main tour listing)
-    if (is_post_type_archive('itineraries')) {
-        $new_template = locate_template(array('archive-itineraries.php'));
-        if (!empty($new_template)) {
-            return $new_template;
-        }
-    }
-    
-    // For trip type taxonomy
-    if (is_tax('itinerary_types')) {
-        $new_template = locate_template(array('taxonomy-itinerary_types.php', 'archive-itineraries.php'));
-        if (!empty($new_template)) {
-            return $new_template;
-        }
-    }
-    
-    // For destination taxonomy
-    if (is_tax('travel_locations')) {
-        $new_template = locate_template(array('taxonomy-travel_locations.php', 'archive-itineraries.php'));
-        if (!empty($new_template)) {
-            return $new_template;
-        }
-    }
-    
-    return $template;
-}
-add_filter('template_include', 'priyanshtours_override_wp_travel_templates', 99);
-
-/**
- * Comprehensive template override to handle all tour-related URLs
- * This catches cases where WordPress conditionals might not be working
- */
-function priyanshtours_comprehensive_template_override($template) {
-    $request_uri = $_SERVER['REQUEST_URI'];
-    $parsed_url = parse_url($request_uri);
-    $path = isset($parsed_url['path']) ? trim($parsed_url['path'], '/') : '';
-    
-    // Check if URL contains itinerary patterns
-    if (preg_match('/\/itinerary\/?(?:\?.*)?$/', $request_uri) || 
-        preg_match('/\/itineraries\/?(?:\?.*)?$/', $request_uri) ||
-        $path === 'itinerary' || 
-        $path === 'itineraries' ||
-        strpos($path, 'wordpress/itinerary') !== false ||
-        strpos($path, 'wordpress/itineraries') !== false) {
-        
-        $archive_template = get_template_directory() . '/archive-itineraries.php';
-        if (file_exists($archive_template)) {
-            return $archive_template;
-        }
-    }
-    
-    // Check for tour taxonomy pages
-    if (preg_match('/\/itinerary_types\//', $request_uri) || 
-        preg_match('/\/travel_locations\//', $request_uri)) {
-        
-        $archive_template = get_template_directory() . '/archive-itineraries.php';
-        if (file_exists($archive_template)) {
-            return $archive_template;
-        }
-    }
-    
-    return $template;
-}
-add_filter('template_include', 'priyanshtours_comprehensive_template_override', 9998);
-
-/**
- * Force our custom template parts to be used instead of WP Travel's
- */
-function priyanshtours_redirect_template_part($located, $template_name, $args, $template_path, $default_path) {
-    // If this is the archive content template for itineraries
-    if ($template_name == 'content-archive-itineraries' || $template_name == 'content-archive-itineraries-new') {
-        // Return our custom template file
-        return get_template_directory() . '/wp-travel-templates/content-archive-itineraries-custom.php';
-    }
-    
-    return $located;
-}
-add_filter('wptravel_template_part', 'priyanshtours_redirect_template_part', 99, 5);
 
 // Remove any filters that might be interfering
 function priyanshtours_remove_interfering_filters() {
@@ -1278,22 +1000,6 @@ function priyanshtours_customize_dashboard_styles() {
 }
 add_action('wp_enqueue_scripts', 'priyanshtours_customize_dashboard_styles', 99);
 
-/**
- * Enqueue tour details styles and scripts
- */
-function priyanshtours_enqueue_tour_details_styles() {
-    // Load on single tour pages
-    if (is_singular('itineraries')) {
-        wp_enqueue_style('priyanshtours-tour-details', get_template_directory_uri() . '/assets/css/tour-details.css', array(), _S_VERSION);
-        wp_enqueue_script('priyanshtours-itinerary', get_template_directory_uri() . '/assets/js/itinerary.js', array('jquery'), _S_VERSION, true);
-    }
-    
-    // Load responsive styles on both tour listings and single tour pages
-    if (is_singular('itineraries') || is_post_type_archive('itineraries') || is_tax('itinerary_types') || is_tax('travel_locations')) {
-        wp_enqueue_style('priyanshtours-tour-responsive', get_template_directory_uri() . '/assets/css/tour-responsive.css', array(), _S_VERSION);
-    }
-}
-add_action('wp_enqueue_scripts', 'priyanshtours_enqueue_tour_details_styles');
 
 /**
  * Update our WP Travel template override function to include single tour template
@@ -1518,5 +1224,6 @@ function priyanshtours_debug_template_loading($template) {
     return $template;
 }
 add_filter('template_include', 'priyanshtours_debug_template_loading', 99999);
+
 
 ?> 
